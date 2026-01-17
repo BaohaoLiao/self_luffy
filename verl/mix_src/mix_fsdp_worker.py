@@ -15,8 +15,7 @@ from verl.utils import hf_tokenizer
 from verl.utils.debug import log_gpu_memory_usage
 from verl.utils.fs import copy_local_path_from_hdfs
 from verl.utils.fsdp_utils import get_fsdp_wrap_policy, init_fn, get_init_weight_context_manager   # offload_fsdp_grad
-from verl.utils.fsdp_utils import offload_fsdp_optimizer, offload_fsdp_param_and_grad, load_fsdp_optimizer, \
-    load_fsdp_param_and_grad
+from verl.utils.fsdp_utils import offload_fsdp_optimizer, load_fsdp_optimizer, load_fsdp_param_and_grad # offload_fsdp_param_and_grad
 from verl.utils.import_utils import import_external_libs
 from verl.utils.model import compute_position_id_with_mask
 from verl.utils.flops_counter import FlopsCounter
@@ -32,7 +31,7 @@ from verl.workers.fsdp_workers import (
     get_init_weight_context_manager,
     #offload_fsdp_grad,
     offload_fsdp_optimizer,
-    offload_fsdp_param_and_grad,
+    #offload_fsdp_param_and_grad,
     load_fsdp_optimizer,
     load_fsdp_param_and_grad
 )
@@ -316,7 +315,7 @@ class MIXActorRolloutRefWorker(Worker):
             if self._is_offload_param:
                 # param is require during state_dict in sharding manager
                 from verl.workers.fsdp_workers import offload_fsdp_grad
-                
+
                 offload_fsdp_grad(module=self.actor_module_fsdp)
                 log_gpu_memory_usage('After offload actor grad during init', logger=logger)
             if self._is_offload_optimizer:
@@ -397,6 +396,7 @@ class MIXActorRolloutRefWorker(Worker):
             output = output.to('cpu')
 
         if self._is_offload_param:
+            from verl.workers.fsdp_workers import offload_fsdp_param_and_grad
             offload_fsdp_param_and_grad(module=self.actor_module_fsdp, offload_grad=self._is_offload_grad)
         if self._is_offload_optimizer:
             offload_fsdp_optimizer(optimizer=self.actor_optimizer)
@@ -432,6 +432,7 @@ class MIXActorRolloutRefWorker(Worker):
 
         if self._is_offload_param:
             # NOTE(sgm): the grad is already in CPU, only offload param here
+            from verl.workers.fsdp_workers import offload_fsdp_param_and_grad
             offload_fsdp_param_and_grad(module=self.actor_module_fsdp, offload_grad=self._is_offload_grad)
         # clear kv cache
         torch.cuda.empty_cache()
@@ -505,6 +506,7 @@ class MIXActorRolloutRefWorker(Worker):
 
         torch.distributed.barrier()
         if self._is_offload_param:
+            from verl.workers.fsdp_workers import offload_fsdp_param_and_grad
             offload_fsdp_param_and_grad(module=self.actor_module_fsdp, offload_grad=self._is_offload_grad)
     
     @register(dispatch_mode=Dispatch.ONE_TO_ALL)
@@ -530,6 +532,7 @@ class MIXActorRolloutRefWorker(Worker):
 
         torch.distributed.barrier()
         if self._is_offload_param:
+            from verl.workers.fsdp_workers import offload_fsdp_param_and_grad
             offload_fsdp_param_and_grad(module=self.actor_module_fsdp, offload_grad=self._is_offload_grad)
 
 
@@ -543,4 +546,5 @@ class MIXActorRolloutRefWorker(Worker):
         self.checkpoint_manager.load_checkpoint(path=path, del_local_after_load=del_local_after_load)
 
         if self._is_offload_param:
+            from verl.workers.fsdp_workers import offload_fsdp_param_and_grad
             offload_fsdp_param_and_grad(module=self.actor_module_fsdp, offload_grad=self._is_offload_grad)
