@@ -14,7 +14,7 @@ from verl.single_controller.base.decorator import register, Dispatch
 from verl.utils import hf_tokenizer
 from verl.utils.debug import log_gpu_memory_usage
 from verl.utils.fs import copy_local_path_from_hdfs
-from verl.utils.fsdp_utils import get_fsdp_wrap_policy, offload_fsdp_grad, init_fn, get_init_weight_context_manager
+from verl.utils.fsdp_utils import get_fsdp_wrap_policy, init_fn, get_init_weight_context_manager   # offload_fsdp_grad
 from verl.utils.fsdp_utils import offload_fsdp_optimizer, offload_fsdp_param_and_grad, load_fsdp_optimizer, \
     load_fsdp_param_and_grad
 from verl.utils.import_utils import import_external_libs
@@ -30,7 +30,7 @@ from verl.workers.fsdp_workers import (
     get_fsdp_wrap_policy,
     get_sharding_strategy,
     get_init_weight_context_manager,
-    offload_fsdp_grad,
+    #offload_fsdp_grad,
     offload_fsdp_optimizer,
     offload_fsdp_param_and_grad,
     load_fsdp_optimizer,
@@ -315,6 +315,8 @@ class MIXActorRolloutRefWorker(Worker):
 
             if self._is_offload_param:
                 # param is require during state_dict in sharding manager
+                from verl.workers.fsdp_workers import offload_fsdp_grad
+                
                 offload_fsdp_grad(module=self.actor_module_fsdp)
                 log_gpu_memory_usage('After offload actor grad during init', logger=logger)
             if self._is_offload_optimizer:
