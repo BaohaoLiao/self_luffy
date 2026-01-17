@@ -68,6 +68,23 @@ def _to_fsdp_engine_config(cfg):
     return omega_conf_to_dataclass(filtered, dataclass_type=FSDPEngineConfig)
 
 
+def _to_rollout_config(cfg):
+    cfg_dict = OmegaConf.to_container(OmegaConf.create(cfg), resolve=True) or {}
+    val_kwargs = dict(cfg_dict.get("val_kwargs", {}) or {})
+    if "val_temperature" in cfg_dict:
+        val_kwargs.setdefault("temperature", cfg_dict.pop("val_temperature"))
+    if "val_top_p" in cfg_dict:
+        val_kwargs.setdefault("top_p", cfg_dict.pop("val_top_p"))
+    if "val_top_k" in cfg_dict:
+        val_kwargs.setdefault("top_k", cfg_dict.pop("val_top_k"))
+    if val_kwargs:
+        cfg_dict["val_kwargs"] = val_kwargs
+
+    allowed_keys = {f.name for f in fields(RolloutConfig)}
+    filtered = {key: val for key, val in cfg_dict.items() if key in allowed_keys}
+    return omega_conf_to_dataclass(filtered, dataclass_type=RolloutConfig)
+
+
 class MIXActorRolloutRefWorker(Worker):
     def __init__(self, config: DictConfig, role: str):
         super().__init__()
@@ -339,7 +356,7 @@ class MIXActorRolloutRefWorker(Worker):
                 self.config.rollout.tensor_model_parallel_size = self.world_size
             tp_size = self.world_size
 
-        rollout_config: RolloutConfig = omega_conf_to_dataclass(self.config.rollout, dataclass_type=RolloutConfig)
+        rollout_config: RolloutConfig = _to_rollout_config(self.config.rollout)
         model_config: HFModelConfig = omega_conf_to_dataclass(self.config.model, dataclass_type=HFModelConfig)
         self.model_config = model_config
 
