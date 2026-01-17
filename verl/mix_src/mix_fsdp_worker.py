@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import warnings
+from dataclasses import fields
 
 import torch
 import torch.distributed as dist
@@ -58,6 +59,13 @@ try:
     from verl.models.registry import check_model_support_rmpad as _check_model_support_rmpad
 except ImportError:
     _check_model_support_rmpad = None
+
+
+def _to_fsdp_engine_config(cfg):
+    cfg_dict = OmegaConf.to_container(OmegaConf.create(cfg), resolve=True)
+    allowed_keys = {f.name for f in fields(FSDPEngineConfig)}
+    filtered = {key: val for key, val in (cfg_dict or {}).items() if key in allowed_keys}
+    return omega_conf_to_dataclass(filtered, dataclass_type=FSDPEngineConfig)
 
 
 class MIXActorRolloutRefWorker(Worker):
@@ -460,7 +468,7 @@ class MIXActorRolloutRefWorker(Worker):
         if self._is_actor or self._is_rollout:
             if self._is_actor:
                 optim_config = self.config.actor.optim
-                fsdp_config = omega_conf_to_dataclass(self.config.actor.fsdp_config, dataclass_type=FSDPEngineConfig)
+                fsdp_config = _to_fsdp_engine_config(self.config.actor.fsdp_config)
             else:
                 optim_config = None
                 fsdp_config = FSDPEngineConfig()
@@ -518,7 +526,7 @@ class MIXActorRolloutRefWorker(Worker):
         if self._is_ref:
             self.ref_module_fsdp = self._build_model_optimizer(
                 model_path=self.config.model.path,
-                fsdp_config=omega_conf_to_dataclass(self.config.ref.fsdp_config, dataclass_type=FSDPEngineConfig),
+                fsdp_config=_to_fsdp_engine_config(self.config.ref.fsdp_config),
                 optim_config=None,
                 override_model_config=override_model_config,
                 use_remove_padding=use_remove_padding,
