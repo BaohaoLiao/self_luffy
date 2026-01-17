@@ -34,7 +34,11 @@ import traceback
 from torch import nn
 
 from verl import DataProto
-from verl.utils.torch_functional import get_eos_mask, pad_sequence_to_length
+from verl.utils.torch_functional import pad_sequence_to_length
+try:
+    from verl.utils.torch_functional import get_eos_mask
+except ImportError:
+    from verl.utils.torch_functional import get_response_mask as get_eos_mask
 from verl.workers.rollout.base import BaseRollout
 from verl.third_party.vllm import LLM, vllm_version
 from verl.third_party.vllm import parallel_state as vllm_ps
