@@ -54,6 +54,11 @@ from .mix_vllm_rollout import MIXvLLMRollout
 logger = logging.getLogger(__file__)
 logger.setLevel(os.getenv("VERL_PPO_LOGGING_LEVEL", "WARN"))
 
+try:
+    from verl.models.registry import check_model_support_rmpad as _check_model_support_rmpad
+except ImportError:
+    _check_model_support_rmpad = None
+
 
 class MIXActorRolloutRefWorker(Worker):
     def __init__(self, config: DictConfig, role: str):
@@ -178,6 +183,8 @@ class MIXActorRolloutRefWorker(Worker):
         actor_model_config = AutoConfig.from_pretrained(
             local_path, trust_remote_code=trust_remote_code, attn_implementation="flash_attention_2"
         )
+        if use_remove_padding and _check_model_support_rmpad is not None:
+            _check_model_support_rmpad(actor_model_config.model_type)
 
         self.generation_config = get_generation_config(local_path, trust_remote_code=trust_remote_code)
 
