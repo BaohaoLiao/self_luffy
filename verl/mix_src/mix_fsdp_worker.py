@@ -15,7 +15,7 @@ from verl.utils import hf_tokenizer
 from verl.utils.debug import log_gpu_memory_usage
 from verl.utils.fs import copy_local_path_from_hdfs
 from verl.utils.fsdp_utils import get_fsdp_wrap_policy, init_fn, get_init_weight_context_manager   # offload_fsdp_grad
-from verl.utils.fsdp_utils import offload_fsdp_optimizer, load_fsdp_optimizer, load_fsdp_param_and_grad # offload_fsdp_param_and_grad
+from verl.utils.fsdp_utils import offload_fsdp_optimizer, load_fsdp_optimizer #, load_fsdp_param_and_grad, offload_fsdp_param_and_grad
 from verl.utils.import_utils import import_external_libs
 from verl.utils.model import compute_position_id_with_mask
 from verl.utils.flops_counter import FlopsCounter
@@ -33,7 +33,7 @@ from verl.workers.fsdp_workers import (
     offload_fsdp_optimizer,
     #offload_fsdp_param_and_grad,
     load_fsdp_optimizer,
-    load_fsdp_param_and_grad
+    #load_fsdp_param_and_grad
 )
 from codetiming import Timer
 
@@ -363,6 +363,7 @@ class MIXActorRolloutRefWorker(Worker):
 
         assert self._is_actor
         if self._is_offload_param:
+            from verl.workers.fsdp_workers import load_fsdp_param_and_grad
             load_fsdp_param_and_grad(module=self.actor_module_fsdp,
                                      device_id=torch.cuda.current_device(),
                                      load_grad=self._is_offload_grad)
@@ -411,6 +412,7 @@ class MIXActorRolloutRefWorker(Worker):
 
         assert self._is_rollout
         if self._is_offload_param:
+            from verl.workers.fsdp_workers import load_fsdp_param_and_grad
             load_fsdp_param_and_grad(module=self.actor_module_fsdp,
                                      device_id=torch.cuda.current_device(),
                                      load_grad=self._is_offload_grad)
@@ -498,6 +500,7 @@ class MIXActorRolloutRefWorker(Worker):
         assert self._is_actor
         import torch
         if self._is_offload_param:
+            from verl.workers.fsdp_workers import load_fsdp_param_and_grad
             load_fsdp_param_and_grad(module=self.actor_module_fsdp,
                                      device_id=torch.cuda.current_device(),
                                      load_grad=self._is_offload_grad)
@@ -514,6 +517,7 @@ class MIXActorRolloutRefWorker(Worker):
         assert self._is_actor
         import torch
         if self._is_offload_param:
+            from verl.workers.fsdp_workers import load_fsdp_param_and_grad
             load_fsdp_param_and_grad(module=self.actor_module_fsdp,
                                      device_id=torch.cuda.current_device(),
                                      load_grad=self._is_offload_grad)
@@ -539,6 +543,7 @@ class MIXActorRolloutRefWorker(Worker):
     @register(dispatch_mode=Dispatch.ONE_TO_ALL)
     def load_checkpoint(self, path, del_local_after_load=True):
         if self._is_offload_param:
+            from verl.workers.fsdp_workers import load_fsdp_param_and_grad
             load_fsdp_param_and_grad(module=self.actor_module_fsdp,
                                      device_id=torch.cuda.current_device(),
                                      load_grad=self._is_offload_grad)
