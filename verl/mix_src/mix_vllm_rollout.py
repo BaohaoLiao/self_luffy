@@ -74,8 +74,9 @@ def _pre_process_inputs_right_pad(pad_token_id, prompt_token_ids: torch.Tensor) 
 from verl.workers.rollout.vllm_rollout import vLLMRollout
 
 class MIXvLLMRollout(vLLMRollout):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, config, model_config, device_mesh):
+        super().__init__(config=config, model_config=model_config, device_mesh=device_mesh)
+        self.tokenizer = model_config.tokenizer
         self.prefix_strategy = self.config.get('prefix_strategy', 'random')
         
         self.prefix_steps = self.config.get('prefix_steps', 300)

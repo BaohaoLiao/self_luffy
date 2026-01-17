@@ -39,18 +39,18 @@ from verl.utils.seqlen_balancing import get_seqlen_balanced_partitions, log_seql
 import torch
 
 from verl.trainer.ppo.ray_trainer import (
-    RayPPOTrainer, 
-    Role, 
-    ResourcePoolManager, 
-    WorkerType, 
-    _timer, 
-    # compute_data_metrics, 
-    compute_timing_metrics, 
-    dataprotoitem_to_dataproto, 
-    # compute_advantage, 
-    reduce_metrics
+    RayPPOTrainer,
+    Role,
+    ResourcePoolManager,
+    WorkerType,
+    # compute_data_metrics,
+    compute_timing_metrics,
+    # dataprotoitem_to_dataproto,
+    # compute_advantage,
+    reduce_metrics,
 )
 from verl.utils.torch_functional import masked_mean
+from verl.utils.profiler import marked_timer as _timer
 from .mix_trainer import MIXRayPPOTrainer, compute_advantage, apply_kl_penalty, compute_data_metrics_ours
 
 

@@ -50,7 +50,7 @@ from verl.trainer.ppo.ray_trainer import (
     reduce_metrics
 )
 from verl.utils.torch_functional import masked_mean
-from verl.utils.debug import marked_timer as _timer
+from verl.utils.profiler import marked_timer as _timer
 
 
 # directly copied from verl/trainer/ppo/ray_trainer.py
