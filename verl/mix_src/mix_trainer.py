@@ -45,7 +45,7 @@ from verl.trainer.ppo.ray_trainer import (
     WorkerType,
     # compute_data_metrics, 
     compute_timing_metrics, 
-    dataprotoitem_to_dataproto, 
+    # dataprotoitem_to_dataproto, 
     # compute_advantage, 
     reduce_metrics
 )
