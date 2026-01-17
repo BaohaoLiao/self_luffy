@@ -42,8 +42,7 @@ from verl.trainer.ppo.ray_trainer import (
     RayPPOTrainer, 
     Role, 
     ResourcePoolManager, 
-    WorkerType, 
-    _timer, 
+    WorkerType,
     # compute_data_metrics, 
     compute_timing_metrics, 
     dataprotoitem_to_dataproto, 
@@ -51,6 +50,7 @@ from verl.trainer.ppo.ray_trainer import (
     reduce_metrics
 )
 from verl.utils.torch_functional import masked_mean
+from verl.utils.debug import marked_timer as _timer
 
 
 # directly copied from verl/trainer/ppo/ray_trainer.py
