@@ -178,7 +178,7 @@ class MIXvLLMRollout(vLLMRollout):
                     global_steps = prompts.meta_info['global_steps'] - 1 # we start from 1
                     import random
                     if not self.prefix_share_across_samples:
-                        assert self.config.prefix_strategy != 'linear', "Linear strategy is not implemented with prefix_share_across_samples=True ! "
+                        assert self.prefix_strategy != 'linear', "Linear strategy is not implemented with prefix_share_across_samples=True ! "
                         if self.n_prefix == -1:
                             if self.prefix_strategy == 'random':
                                 prefix_ratios = [random.uniform(self.min_prefix_ratio, self.max_prefix_ratio) for _ in range(len(tgt_list))]
