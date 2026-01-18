@@ -107,7 +107,11 @@ class MIXDataParallelPPOActor(DataParallelPPOActor):
                     clip_ratio = self.config.clip_ratio
                     entropy_coeff = self.config.entropy_coeff
 
-                    entropy, log_prob = self._forward_micro_batch(micro_batch=data, temperature=temperature)
+                    entropy, log_prob = self._forward_micro_batch(
+                        micro_batch=data,
+                        temperature=temperature,
+                        calculate_entropy=True,
+                    )
 
                     if self.config.use_sft_multitask_loss:
                         assert self.config.use_off_policy_loss is False, 'Either use off-policy loss or sft multitask loss. You cannot set both to be True.'
