@@ -650,10 +650,8 @@ def compute_data_metrics_ours(batch, use_critic=True):
 
     max_prompt_length = prompt_mask.size(-1)
 
-    from verl.trainer.ppo.ray_trainer import _compute_response_info
-    response_info = _compute_response_info(batch)
-    prompt_length = response_info['prompt_length']
-    response_length = response_info['response_length']
+    prompt_length = prompt_mask.sum(-1)
+    response_length = response_mask.sum(-1)
 
     # compute on/off policy stats
     off_policy_mask = batch.batch['prefix_mask'].any(-1) # [bsz, ]
