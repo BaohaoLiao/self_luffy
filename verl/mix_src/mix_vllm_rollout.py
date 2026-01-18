@@ -267,11 +267,20 @@ class MIXvLLMRollout(vLLMRollout):
 
                 # Process outputs
                 response_ids = [o.outputs[0].token_ids for o in output]
-                response = pad_sequence_to_length(
-                    response_ids,
-                    self.config.response_length,
-                    self.pad_token_id,
-                ).to(idx.device)
+                response_tensors = [torch.tensor(ids, device=idx.device, dtype=idx.dtype) for ids in response_ids]
+                response = torch.nn.utils.rnn.pad_sequence(
+                    response_tensors,
+                    batch_first=True,
+                    padding_value=self.pad_token_id,
+                )
+                if response.shape[1] > self.config.response_length:
+                    response = response[:, : self.config.response_length]
+                if response.shape[1] < self.config.response_length:
+                    response = pad_sequence_to_length(
+                        response,
+                        self.config.response_length,
+                        self.pad_token_id,
+                    )
                 # logger.info('example response', response)
                 # logger.info('example response shape', response.shape)
                 
