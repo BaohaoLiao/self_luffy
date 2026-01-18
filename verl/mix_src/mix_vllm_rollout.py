@@ -82,6 +82,10 @@ class MIXvLLMRollout(vLLMRollout):
         super().__init__(config=config, model_config=model_config, device_mesh=device_mesh)
         self.tokenizer = model_config.tokenizer
         self.prefix_strategy = self.config.get('prefix_strategy', 'random')
+        self.prefix_share_across_samples = self.config.get('prefix_share_across_samples', False)
+        self.n_prefix = self.config.get('n_prefix', -1)
+        self.min_prefix_ratio = self.config.get('min_prefix_ratio', 0.0)
+        self.max_prefix_ratio = self.config.get('max_prefix_ratio', 1.0)
         
         self.prefix_steps = self.config.get('prefix_steps', 300)
         self.prefix_linear_max_ratio = self.config.get('prefix_linear_max_ratio', 0.8)
@@ -99,11 +103,11 @@ class MIXvLLMRollout(vLLMRollout):
             self.prefix_ratio_windows = [(0, (i+1)*self.prefix_linear_max_ratio/10) for i in range(10)]
             self.prefix_step_windows = [(i*self.prefix_steps/10, (i+1)*self.prefix_steps/10) for i in range(10)]
         elif self.prefix_strategy == 'fixed':
-            assert self.config.prefix_share_across_samples == False, "Fixed strategy could not work with prefix_share_across_samples=True ! "
+            assert self.prefix_share_across_samples == False, "Fixed strategy could not work with prefix_share_across_samples=True ! "
             # self.prefix_fixed_num = self.config.get('prefix_fixed_num', 2)
-            n_prefix = self.config.n_prefix if self.config.n_prefix != -1 else self.config.n
-            ratio_step = (self.config.max_prefix_ratio - self.config.min_prefix_ratio) / (n_prefix-1)
-            self.prefix_fix_ratios = [self.config.min_prefix_ratio + i*ratio_step for i in range(n_prefix)]
+            n_prefix = self.n_prefix if self.n_prefix != -1 else self.config.n
+            ratio_step = (self.max_prefix_ratio - self.min_prefix_ratio) / (n_prefix-1)
+            self.prefix_fix_ratios = [self.min_prefix_ratio + i*ratio_step for i in range(n_prefix)]
 
     @torch.no_grad()
     def generate_sequences(self, prompts: DataProto, max_retries: int = 1e9, **kwargs) -> DataProto:
@@ -173,56 +177,56 @@ class MIXvLLMRollout(vLLMRollout):
                     
                     global_steps = prompts.meta_info['global_steps'] - 1 # we start from 1
                     import random
-                    if not self.config.prefix_share_across_samples:
+                    if not self.prefix_share_across_samples:
                         assert self.config.prefix_strategy != 'linear', "Linear strategy is not implemented with prefix_share_across_samples=True ! "
-                        if self.config.n_prefix == -1:
-                            if self.config.prefix_strategy == 'random':
-                                prefix_ratios = [random.uniform(self.config.min_prefix_ratio, self.config.max_prefix_ratio) for _ in range(len(tgt_list))]
-                            elif self.config.prefix_strategy == 'reverse_linear' or self.config.prefix_strategy == 'linear_max':
+                        if self.n_prefix == -1:
+                            if self.prefix_strategy == 'random':
+                                prefix_ratios = [random.uniform(self.min_prefix_ratio, self.max_prefix_ratio) for _ in range(len(tgt_list))]
+                            elif self.prefix_strategy == 'reverse_linear' or self.prefix_strategy == 'linear_max':
                                 w_idx = -1
                                 for i in range(len(self.prefix_step_windows)):
                                     if global_steps >= self.prefix_step_windows[i][0] and global_steps <= self.prefix_step_windows[i][1]:
                                         w_idx = i
                                         break
                                 prefix_ratios = [random.uniform(self.prefix_ratio_windows[w_idx][0], self.prefix_ratio_windows[w_idx][1]) for _ in range(len(tgt_list))]
-                            elif self.config.prefix_strategy == 'fixed':
+                            elif self.prefix_strategy == 'fixed':
                                 prefix_ratios = sum([self.prefix_fix_ratios for i in range(batch_size)], [])
                         else:
-                            assert self.config.n_prefix <= self.config.n, f"n_prefix {self.config.n_prefix} must be less than or equal to n {self.config.n}"
+                            assert self.n_prefix <= self.config.n, f"n_prefix {self.n_prefix} must be less than or equal to n {self.config.n}"
                             assert len(tgt_list) == self.config.n * batch_size
                             prefix_ratios = []
                             for i in range(batch_size):
-                                if self.config.prefix_strategy == 'random':
-                                    prefix_ratios.extend([random.uniform(self.config.min_prefix_ratio, self.config.max_prefix_ratio) for _ in range(self.config.n_prefix)])
-                                elif self.config.prefix_strategy == 'reverse_linear' or self.config.prefix_strategy == 'linear_max':
+                                if self.prefix_strategy == 'random':
+                                    prefix_ratios.extend([random.uniform(self.min_prefix_ratio, self.max_prefix_ratio) for _ in range(self.n_prefix)])
+                                elif self.prefix_strategy == 'reverse_linear' or self.prefix_strategy == 'linear_max':
                                     w_idx = -1
                                     for i in range(len(self.prefix_step_windows)):
                                         if global_steps >= self.prefix_step_windows[i][0] and global_steps <= self.prefix_step_windows[i][1]:
                                             w_idx = i
                                             break
-                                    prefix_ratios.extend([random.uniform(self.prefix_ratio_windows[w_idx][0], self.prefix_ratio_windows[w_idx][1]) for _ in range(self.config.n_prefix)])
-                                elif self.config.prefix_strategy == 'fixed':
+                                    prefix_ratios.extend([random.uniform(self.prefix_ratio_windows[w_idx][0], self.prefix_ratio_windows[w_idx][1]) for _ in range(self.n_prefix)])
+                                elif self.prefix_strategy == 'fixed':
                                     prefix_ratios.extend(self.prefix_fix_ratios[:])
-                                else: raise NotImplementedError(f"Prefix strategy {self.config.prefix_strategy} is not implemented! ")
+                                else: raise NotImplementedError(f"Prefix strategy {self.prefix_strategy} is not implemented! ")
                                 
-                                prefix_ratios.extend([0.0] * (self.config.n - self.config.n_prefix))
+                                prefix_ratios.extend([0.0] * (self.config.n - self.n_prefix))
                             assert len(prefix_ratios) == len(tgt_list)
                     else:
-                        if self.config.prefix_strategy == 'linear':
+                        if self.prefix_strategy == 'linear':
                             ratio = min((global_steps / self.prefix_steps), 1.0)
                             prefix_ratio_base = self.prefix_linear_max_ratio * (1-ratio)
                         else: # default, use random prefix ratio
                             prefix_ratio_base = None
                             
-                        assert self.config.n_prefix <= self.config.n, f"n_prefix {self.config.n_prefix} must be less than or equal to n {self.config.n}"
+                        assert self.n_prefix <= self.config.n, f"n_prefix {self.n_prefix} must be less than or equal to n {self.config.n}"
                         assert len(tgt_list) == self.config.n * batch_size
                         prefix_ratios = []
                         for i in range(batch_size):
-                            prefix_ratio = prefix_ratio_base if prefix_ratio_base is not None else random.uniform(self.config.min_prefix_ratio, self.config.max_prefix_ratio)
+                            prefix_ratio = prefix_ratio_base if prefix_ratio_base is not None else random.uniform(self.min_prefix_ratio, self.max_prefix_ratio)
 
-                            if self.config.n_prefix > 0:
-                                prefix_ratios.extend([prefix_ratio] * self.config.n_prefix)
-                                prefix_ratios.extend([0.0] * (self.config.n - self.config.n_prefix))
+                            if self.n_prefix > 0:
+                                prefix_ratios.extend([prefix_ratio] * self.n_prefix)
+                                prefix_ratios.extend([0.0] * (self.config.n - self.n_prefix))
                             else:
                                 logger.info(f"Prefix share across samples enabled! n_prefix is 0, n is set to {self.config.n}")
                                 prefix_ratios.extend([prefix_ratio] * self.config.n)
