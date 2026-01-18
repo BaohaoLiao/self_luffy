@@ -650,8 +650,8 @@ def compute_data_metrics_ours(batch, use_critic=True):
 
     max_prompt_length = prompt_mask.size(-1)
 
-    prompt_length = prompt_mask.sum(-1)
-    response_length = response_mask.sum(-1)
+    prompt_length = prompt_mask.sum(-1).float()
+    response_length = response_mask.sum(-1).float()
 
     # compute on/off policy stats
     off_policy_mask = batch.batch['prefix_mask'].any(-1) # [bsz, ]
