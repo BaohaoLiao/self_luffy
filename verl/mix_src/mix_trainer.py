@@ -109,10 +109,12 @@ def compute_advantage(data: DataProto, adv_estimator, gamma=1.0, lam=1.0, grpo_u
         response_length = responses.size(-1)
         attention_mask = data.batch['attention_mask']
         response_mask = attention_mask[:, -response_length:]
-        advantages, returns = core_algos.compute_grpo_outcome_advantage(token_level_rewards=token_level_rewards,
-                                                                        eos_mask=response_mask,
-                                                                        index=index,
-                                                                        use_std=grpo_use_std)
+        advantages, returns = core_algos.compute_grpo_outcome_advantage(
+            token_level_rewards=token_level_rewards,
+            response_mask=response_mask,
+            index=index,
+            norm_adv_by_std_in_grpo=grpo_use_std,
+        )
         data.batch['advantages'] = advantages
         data.batch['returns'] = returns
     elif adv_estimator == 'grpo_split':
