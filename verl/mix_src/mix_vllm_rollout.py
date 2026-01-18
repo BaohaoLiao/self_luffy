@@ -266,7 +266,8 @@ class MIXvLLMRollout(vLLMRollout):
                         use_tqdm=False)
 
                 # Process outputs
-                response = output[0].to(idx.device)
+                response_ids = [o.outputs[0].token_ids for o in output]
+                response = torch.tensor(response_ids, device=idx.device)
                 # logger.info('example response', response)
                 # logger.info('example response shape', response.shape)
                 
