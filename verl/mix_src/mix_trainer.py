@@ -661,6 +661,7 @@ def compute_data_metrics_ours(batch, use_critic=True):
     
     on_policy_count = on_policy_mask.sum().item()
     off_on_example_ratio = off_policy_mask.sum().item() / max(1, on_policy_count)
+    off_policy_count = off_policy_mask.sum().item()
 
     off_sequence_score = sequence_score[off_policy_mask]
     on_sequence_score = sequence_score[on_policy_mask]
@@ -747,6 +748,10 @@ def compute_data_metrics_ours(batch, use_critic=True):
         #     torch.mean(off_prompt_score).detach().item(),
         'on_off_metrics/off_on_example_ratio':
             off_on_example_ratio,
+        'on_off_metrics/on_policy_count':
+            float(on_policy_count),
+        'on_off_metrics/off_policy_count':
+            float(off_policy_count),
         # prompt length
         'prompt_length/mean':
             torch.mean(prompt_length).detach().item(),

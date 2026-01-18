@@ -68,8 +68,21 @@ def _to_fsdp_engine_config(cfg):
     return omega_conf_to_dataclass(filtered, dataclass_type=FSDPEngineConfig)
 
 
+_EXTRA_ROLLOUT_KEYS = {
+    "prefix_strategy",
+    "prefix_share_across_samples",
+    "n_prefix",
+    "min_prefix_ratio",
+    "max_prefix_ratio",
+    "prefix_steps",
+    "prefix_linear_max_ratio",
+    "prefix_lienar_max_var",
+}
+
+
 def _to_rollout_config(cfg):
     cfg_dict = OmegaConf.to_container(OmegaConf.create(cfg), resolve=True) or {}
+    extra_cfg = {key: val for key, val in cfg_dict.items() if key in _EXTRA_ROLLOUT_KEYS}
     val_kwargs = dict(cfg_dict.get("val_kwargs", {}) or {})
     if "val_temperature" in cfg_dict:
         val_kwargs.setdefault("temperature", cfg_dict.pop("val_temperature"))
@@ -82,7 +95,10 @@ def _to_rollout_config(cfg):
 
     allowed_keys = {f.name for f in fields(RolloutConfig)}
     filtered = {key: val for key, val in cfg_dict.items() if key in allowed_keys}
-    return omega_conf_to_dataclass(filtered, dataclass_type=RolloutConfig)
+    rollout_cfg = omega_conf_to_dataclass(filtered, dataclass_type=RolloutConfig)
+    for key, val in extra_cfg.items():
+        setattr(rollout_cfg, key, val)
+    return rollout_cfg
 
 
 class MIXActorRolloutRefWorker(Worker):
