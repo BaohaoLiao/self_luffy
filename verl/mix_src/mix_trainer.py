@@ -659,7 +659,8 @@ def compute_data_metrics_ours(batch, use_critic=True):
     off_response_length = response_length[off_policy_mask]
     on_response_length = response_length[on_policy_mask]
     
-    off_on_example_ratio = off_policy_mask.sum().item() / on_policy_mask.sum().item()
+    on_policy_count = on_policy_mask.sum().item()
+    off_on_example_ratio = off_policy_mask.sum().item() / max(1, on_policy_count)
 
     off_sequence_score = sequence_score[off_policy_mask]
     on_sequence_score = sequence_score[on_policy_mask]
