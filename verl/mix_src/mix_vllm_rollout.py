@@ -130,7 +130,7 @@ class MIXvLLMRollout(vLLMRollout):
         for attempt in range(max_retries):
             try:
                 # Rebuild vLLM cache engine if configured
-                if self.config.free_cache_engine:
+                if self.config.free_cache_engine and hasattr(self.inference_engine, 'init_cache_engine'):
                     self.inference_engine.init_cache_engine()
                     
                 # Extract input tensors from prompt batch
@@ -350,7 +350,7 @@ class MIXvLLMRollout(vLLMRollout):
                     batch['prefix_mask'] = prefix_mask
 
                 # Free cache if configured
-                if self.config.free_cache_engine:
+                if self.config.free_cache_engine and hasattr(self.inference_engine, 'free_cache_engine'):
                     self.inference_engine.free_cache_engine()
 
                 if prefix_ratios is not None:
@@ -370,22 +370,6 @@ class MIXvLLMRollout(vLLMRollout):
                 torch.cuda.empty_cache()
                 if hasattr(self.inference_engine, 'free_cache_engine'):
                     self.inference_engine.free_cache_engine()
-                del self.inference_engine
-
-                # Reinitialize engine with same parameters
-                self.inference_engine = LLM(
-                    self.actor_module,
-                    tokenizer=self.tokenizer,
-                    model_hf_config=self.model_hf_config,
-                    tensor_parallel_size=self.tensor_parallel_size,
-                    dtype=self.config.dtype,
-                    enforce_eager=self.config.enforce_eager,
-                    gpu_memory_utilization=self.config.gpu_memory_utilization,
-                    skip_tokenizer_init=False,
-                    max_model_len=self.config.prompt_length +
-                    self.config.response_length,
-                    load_format=self.config.load_format)
-                print("vLLM is ready to roll!")
 
                 if attempt < max_retries - 1:
                     continue
